@@ -1,36 +1,242 @@
-import { View, Text, StyleSheet, ScrollView } from 'react-native'
-import React from 'react'
-import { SafeAreaView } from 'react-native-safe-area-context'
-import FlatCards from '@/components/FlatCards'
-import ElevatedCards from '@/components/ElevatedCards'
-import FancyCard from '@/components/FancyCard'
+import { SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import React, { useState } from 'react';
+import * as Yup from 'yup';
+import { Formik } from 'formik';
+import BouncyCheckbox from "react-native-bouncy-checkbox";
 
-const Index = () => {
+const passwordSchema = Yup.object({
+  passwordLength: Yup.number()
+    .typeError("Please enter a digit")
+    .required("Password length is required")
+    .min(4, "Password length should be a minimum of 4")
+    .max(16, "Password length should be a maximum of 16")
+});
+
+export default function Index() {
+  const [password, setPassword] = useState('');
+  const [isPassGenerated, setIsPassGenerated] = useState(false);
+
+  const [lowerCase, setLowerCase] = useState(true);
+  const [upperCase, setUpperCase] = useState(false);
+  const [numbers, setNumbers] = useState(false);
+  const [symbols, setSymbols] = useState(false);
+
+  const generatePasswordString = (passwordLength: number) => {
+    let charactersList = '';
+
+    const upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    const lower = "abcdefghijklmnopqrstuvwxyz";
+    const num = "1234567890";
+    const sym = "!@#$%^&*-+?";
+
+    if (lowerCase) charactersList += lower;
+    if (upperCase) charactersList += upper;
+    if (numbers) charactersList += num;
+    if (symbols) charactersList += sym;
+
+    const passwordResult = createPassword(charactersList, passwordLength);
+
+    setPassword(passwordResult);
+    setIsPassGenerated(true);
+  };
+
+  const createPassword = (characters: String, passwordLength: number) => {
+    let result = "";
+
+    for (let i = 0; i < passwordLength; i++) {
+      const charIndex = Math.floor(Math.random() * characters.length);
+      result += characters.charAt(charIndex);
+    }
+
+    return result;
+  };
+
+  const resetStates = () => {
+    setPassword('');
+    setIsPassGenerated(false);
+    setLowerCase(true);
+    setUpperCase(false);
+    setNumbers(false);
+    setSymbols(false);
+  };
+
   return (
-    <SafeAreaView>
-      <ScrollView>
+    <ScrollView>
+      <SafeAreaView style={styles.appContainer}>
+        <View style={styles.formContainer}>
+          <Text style={styles.title}>Password Generator</Text>
 
-        <FlatCards />
-        
-        <ElevatedCards />
+          <Formik
+            initialValues={{ passwordLength: '' }}
+            validationSchema={passwordSchema}
+            onSubmit={(values) => {
+              generatePasswordString(Number(values.passwordLength));
+            }}
+          >
+            {({
+              values,
+              errors,
+              touched,
+              isValid,
+              handleChange,
+              handleBlur,
+              handleSubmit,
+              handleReset
+            }) => (
+              <>
+                <View style={styles.inputWrapper}>
+                  <Text style={styles.label}>Password Length</Text>
+                  {touched.passwordLength && errors.passwordLength && (
+                    <Text style={styles.error}>{errors.passwordLength}</Text>
+                  )}
+                  <TextInput
+                    style={styles.input}
+                    value={values.passwordLength}
+                    onChangeText={handleChange('passwordLength')}
+                    placeholder="Ex: 6"
+                    keyboardType="numeric"
+                  />
+                </View>
 
-        <FancyCard 
-        path='https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSKd2EHuREosmBfApydTo14VdEmdJXo1koCzg&s'
-        title="Bhoga Nandishwara Temple"
-        description="Bhoganandiswara Temple and Arunachaleswara Temple are a twin Hindu temples complex located in Nandi village in Chikkaballapur district of Karnataka, India. Ornate, beautifully carved and dedicated to Shiva, they have been variously dated between the 9th- to 10th-century CE."
-        />
+                <View style={styles.inputWrapper}>
+                  <Text style={styles.label}>Includes Lowercase</Text>
+                  <BouncyCheckbox
+                    isChecked={lowerCase}
+                    onPress={() => setLowerCase(!lowerCase)}
+                    fillColor="#29ABB7"
+                  />
+                </View>
 
-        <FancyCard 
-        path="data:image/jpeg;base64,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"
-        title="Ayodya's Rama Temple"
-        description="The Ram Mandir is a partially constructed Hindu temple complex in Ayodhya, Uttar Pradesh, India. Many Hindus believe that it is located at the site of Ram"
-        />
-        
-      </ScrollView>
-    </SafeAreaView>
-  )
+                <View style={styles.inputWrapper}>
+                  <Text style={styles.label}>Includes Uppercase</Text>
+                  <BouncyCheckbox
+                    isChecked={upperCase}
+                    onPress={() => setUpperCase(!upperCase)}
+                    fillColor="#29ABB7"
+                  />
+                </View>
+
+                <View style={styles.inputWrapper}>
+                  <Text style={styles.label}>Includes Numbers</Text>
+                  <BouncyCheckbox
+                    isChecked={numbers}
+                    onPress={() => setNumbers(!numbers)}
+                    fillColor="#29ABB7"
+                  />
+                </View>
+
+                <View style={styles.inputWrapper}>
+                  <Text style={styles.label}>Includes Symbols</Text>
+                  <BouncyCheckbox
+                    isChecked={symbols}
+                    onPress={() => setSymbols(!symbols)}
+                    fillColor="#29ABB7"
+                  />
+                </View>
+
+                <View style={styles.formActions}>
+                  <TouchableOpacity
+                    disabled={!isValid}
+                    onPress={handleSubmit}
+                    style={styles.actionButton}
+                  >
+                    <Text style={styles.actionText}>Generate Password</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    onPress={() => {
+                      handleReset();
+                      resetStates();
+                    }}
+                    style={styles.actionButton}
+                  >
+                    <Text style={styles.actionText}>Reset</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {isPassGenerated && (
+                  <View style={styles.resultContainer}>
+                    <Text style={styles.result} selectable={true}>{password}</Text>
+                  </View>
+                )}
+              </>
+            )}
+          </Formik>
+        </View>
+      </SafeAreaView>
+    </ScrollView>
+  );
 }
 
-const styles = StyleSheet.create({})
-
-export default Index
+const styles = StyleSheet.create({
+  appContainer: {
+    flex: 1,
+    padding: 20,
+    backgroundColor: '#F5F5F5',
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#333',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  label: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#555',
+    marginBottom: 5,
+  },
+  error: {
+    fontSize: 12,
+    color: '#FF0000',
+    marginTop: 5,
+  },
+  formContainer: {
+    backgroundColor: '#FFFFFF',
+    padding: 20,
+    borderRadius: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    elevation: 5,
+  },
+  inputWrapper: {
+    marginBottom: 20,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#DDD',
+    borderRadius: 8,
+    padding: 10,
+    fontSize: 16,
+    width: '100%',
+    backgroundColor: '#FAFAFA',
+  },
+  formActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  actionButton: {
+    backgroundColor: '#29ABB7',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  actionText: {
+    fontSize: 16,
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  resultContainer: {
+    marginTop: 20,
+    alignItems: 'center',
+  },
+  result: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#29ABB7',
+  },
+});
